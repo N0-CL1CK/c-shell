@@ -1,14 +1,50 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
 
 #define MAX_LENGTH 80
+#define MAX_HISTORY_LENGTH 10
+
+void showHistory(char *history[], int history_length) {
+    if (history_length == 0) {
+        printf("Histórico vázio.\n");
+        return;
+    }
+
+    int length = (history_length > MAX_HISTORY_LENGTH) ? MAX_HISTORY_LENGTH : history_length;
+    int gtMaxHistoryLength = (history_length > MAX_HISTORY_LENGTH) ? 1 : 0;
+
+    if (gtMaxHistoryLength == 0) {
+        for (int i=length-1; i>=0; i--) {
+            printf("%d %s\n", i+1, history[i]);
+        }
+    } else {
+        // length = 20
+        // moreRecent = 0
+        int moreRecent = (history_length-MAX_HISTORY_LENGTH)%MAX_HISTORY_LENGTH;
+        int i = moreRecent;
+        int k = 0;
+
+        for (; i != moreRecent+1; i--) {
+            if (i < 0) {
+                break;
+            }
+
+            printf("%d %s\n", history_length-k, history[i]);
+            i = (i == 0) ? MAX_HISTORY_LENGTH : i;
+            k++;
+        }
+    }
+}
 
 int main() {
     char *args[MAX_LENGTH/2 + 1];
     char input[MAX_LENGTH + 2]; // +2 porque precisa levar em consideração o caractere de nova linha(\n) e o caractere nulo de fim de string (\0)
     int should_run = 1;
+    char *history[MAX_HISTORY_LENGTH];
+    int history_length = 0;
 
     while (should_run) {
         printf("osh > ");
@@ -24,14 +60,21 @@ int main() {
             } else {
                 input[strcspn(input, "\n")] = '\0';
 
+                history[history_length%MAX_HISTORY_LENGTH] = malloc(strlen(input));
+                strcpy(history[history_length%MAX_HISTORY_LENGTH], input);
+
                 char *token = strtok(input, " ");
+
                 int i = 0;
                 int waitChildProcess = 1;
 
                 // se o comando digitado for "exit" o processo pai será encerrado, pois o loop while será terminado
                 if (strcmp(token, "exit") == 0) {
                     should_run = 0;
+                } else if (strcmp(token, "history") == 0) {
+                    showHistory(history, history_length);
                 } else {
+                    history_length++;
                     while (token != NULL && i < MAX_LENGTH/2 + 1) {
                         args[i] = token;
                         token = strtok(NULL, " ");
@@ -69,6 +112,12 @@ int main() {
         } else {
             should_run = 0;
         }
+    }
+
+    int length = (history_length > MAX_HISTORY_LENGTH) ? MAX_HISTORY_LENGTH : history_length;
+
+    for (int k=0; k<length; k++) {
+        free(history[k]);
     }
 
     return 0;
