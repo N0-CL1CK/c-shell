@@ -26,6 +26,7 @@ int main() {
 
                 char *token = strtok(input, " ");
                 int i = 0;
+                int waitChildProcess = 1;
 
                 // se o comando digitado for "exit" o processo pai será encerrado, pois o loop while será terminado
                 if (strcmp(token, "exit") == 0) {
@@ -35,6 +36,11 @@ int main() {
                         args[i] = token;
                         token = strtok(NULL, " ");
                         i++;
+                    }
+
+                    if (strcmp(args[i-1], "&") == 0) {
+                        waitChildProcess = 0;
+                        args[i-1] = NULL;
                     }
 
                     args[i] = NULL; // definindo o último elemento como NULL para indicar o final da lista
@@ -52,8 +58,10 @@ int main() {
                         return 1;
                     } else {
                         // o processo pai fica aguardando o processo filho finalizar o comando e terminar a execução do processo
-                        int status;
-                        waitpid(pid, &status, 0);
+                        if (waitChildProcess) {
+                            int status;
+                            waitpid(pid, &status, 0);
+                        }
                     }
                 }
             }
